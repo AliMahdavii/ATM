@@ -1,19 +1,15 @@
-import javafx.animation.PauseTransition;
+import javafx.animation.*;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import java.util.Optional;
 
 
 public class BankProject extends Application {
@@ -24,171 +20,142 @@ public class BankProject extends Application {
     private Account currentAccount = null;
     private Stage primaryStage;
     private BorderPane mainRoot;
-    private VBox buttonLeft;
-    private VBox buttonRight;
-
-    private Button[] leftButtons = new Button[3];
-    private Button[] rightButtons = new Button[3];
-
-    private BorderPane createMainMenu() {
-
-        BorderPane centerPane = new BorderPane();
-
-        VBox optionLeft = new VBox(105);
-        optionLeft.setPadding(new Insets(40));
-
-        VBox optionRight = new VBox(105);
-        optionRight.setPadding(new Insets(40));
-
-        Label[] leftLabels = {new Label("DEPOSIT AMOUNT "), new Label("WITHDRAW AMOUNT "), new Label("BALANCE ENQUIRY ")};
-
-        Label[] rightLabels = {new Label("DELETE ACCOUNT "), new Label("NEW ACCOUNT "), new Label("EXIT ")};
-
-        for (Label label : leftLabels) {
-            label.setFont(Font.font(24));
-            label.setStyle("-fx-background-color:lightgray;");
-            optionLeft.getChildren().add(label);
-        }
-
-        for (Label label : rightLabels) {
-            label.setFont(Font.font(24));
-            label.setStyle("-fx-background-color:lightgray;");
-            optionRight.getChildren().add(label);
-        }
-
-        centerPane.setLeft(optionLeft);
-        centerPane.setRight(optionRight);
-
-        VBox newButtonLeft = new VBox(80);
-        newButtonLeft.setPadding(new Insets(15));
-        VBox newButtonRight = new VBox(80);
-        newButtonRight.setPadding(new Insets(15));
-
-        for (int i = 0; i < 3; i++) {
-            leftButtons[i] = createSideButton();
-            rightButtons[i] = createSideButton();
-            newButtonLeft.getChildren().add(leftButtons[i]);
-            newButtonRight.getChildren().add(rightButtons[i]);
-        }
-
-        setButtonActions();
-
-        HBox hBox = new HBox(10, buttonLeft, centerPane, buttonRight);
-        hBox.setAlignment(Pos.CENTER);
-
-        return new BorderPane(hBox);
-    }
-
-    private void setButtonActions() {
-
-        leftButtons[0].setText("->");
-        leftButtons[0].setOnAction(event -> {
-            depositAmountPage();
-        });
-
-        leftButtons[1].setText("->");
-        leftButtons[1].setOnAction(event -> {
-            withdrawAmountPage();
-        });
-
-        leftButtons[2].setText("->");
-        leftButtons[2].setOnAction(event -> {
-            balanceEnquiryPage();
-        });
-
-        rightButtons[0].setText("<-");
-        rightButtons[0].setOnAction(event -> {
-            deleteAccountPage();
-        });
-
-        rightButtons[1].setText("<-");
-        rightButtons[1].setOnAction(event -> {
-            newAccountPage();
-        });
-
-        rightButtons[2].setText("<-");
-        rightButtons[2].setOnAction(event -> {
-            primaryStage.close();
-        });
-
-    }
-
 
     private void depositAmountPage() {
         VBox box = new VBox(20);
         box.setAlignment(Pos.CENTER);
+        box.setStyle("-fx-background-color: #8caeb6;");
+
+        BorderPane container=new BorderPane();
+        container.setStyle("-fx-background-color: #8caeb6;");
+        container.setTop(makeBackBtn(createDashboardPage()));
+        BorderPane.setAlignment(container.getTop(),Pos.TOP_LEFT);
+        BorderPane.setMargin(container.getTop(),new Insets(10));
+        container.setCenter(box);
 
         Label label = new Label("Enter amount to deposit:");
         label.setFont(Font.font(25));
 
         TextField amountField = new TextField();
-        amountField.setPrefSize(130,70);
+        amountField.setPrefSize(130, 70);
+        amountField.setMaxWidth(250);
         amountField.setPromptText("Amount");
         amountField.setStyle("-fx-font-size: 20px;");
 
+        ContextMenu suggestions = new ContextMenu();
+        int[] suggestedAmounts = {10, 20, 50, 100, 200};
+        for (int amt : suggestedAmounts) {
+            MenuItem item = new MenuItem(String.valueOf(amt)+"$");
+            item.setStyle("-fx-background-radius: 10;");
+            item.setOnAction(e -> amountField.setText(String.valueOf(amt)));
+            suggestions.getItems().add(item);
+        }
+
+        amountField.setOnMouseEntered(e -> {
+            if (!suggestions.isShowing()) {
+                suggestions.show(amountField, amountField.getScene().getWindow().getX() + amountField.localToScene(0, 0).getX() + amountField.getScene().getX() + amountField.getWidth(),
+                        amountField.getScene().getWindow().getY() + amountField.localToScene(0, 0).getY() + amountField.getScene().getY());
+            }
+        });
+
         Button depositButton = new Button("Deposit");
         depositButton.setFont(Font.font(20));
+        depositButton.setStyle("-fx-background-color: #3151b6; -fx-text-fill: white; -fx-background-radius: 10;");
+        depositButton.setOnMouseEntered(e -> depositButton.setStyle("-fx-background-color: #74b9ff; -fx-text-fill: white; -fx-background-radius: 10;"));
+        depositButton.setOnMouseExited(e -> depositButton.setStyle("-fx-background-color: #3151b6; -fx-text-fill: white; -fx-background-radius: 10;"));
 
         depositButton.setOnAction(event -> {
             try {
                 double amount = Double.parseDouble(amountField.getText());
                 if (amount <= 0) {
                     showError("Amount must be greater than 0!");
+                } else if (amount > 200) {
+                    showError("You can't deposit more than 200$");
                 } else {
                     currentAccount.deposit(amount);
                     showInfo("Deposited " + amount + "$ successfully");
-                    mainRoot.setCenter(createMainMenu());
+
+                    PauseTransition pause = new PauseTransition(Duration.seconds(2));
+                    pause.setOnFinished(event1 -> {
+                        VBox mainMenuWithKeypad = new VBox(30, createDashboardPage());
+                        mainMenuWithKeypad.setAlignment(Pos.CENTER);
+                        mainRoot.setStyle("-fx-background-color: #8caeb6;");
+                        mainRoot.setCenter(mainMenuWithKeypad);
+                    });
+                    pause.play();
                 }
             } catch (NumberFormatException e) {
                 showError("Invalid amount!");
             }
-            PauseTransition pause = new PauseTransition(Duration.seconds(2));
-            pause.setOnFinished(event1 -> {
-                VBox mainMenuWithKeypad = new VBox(30, createMainMenu());
-                mainMenuWithKeypad.setAlignment(Pos.CENTER);
-                mainRoot.setCenter(mainMenuWithKeypad);
-            });
-            pause.play();
         });
 
         box.getChildren().addAll(label, amountField, depositButton);
-        mainRoot.setCenter(box);
+        mainRoot.setCenter(container);
     }
 
 
     private void withdrawAmountPage() {
         VBox box = new VBox(20);
         box.setAlignment(Pos.CENTER);
+        box.setStyle("-fx-background-color: #8caeb6;");
+
+        BorderPane container=new BorderPane();
+        container.setStyle("-fx-background-color: #8caeb6;");
+        container.setTop(makeBackBtn(createDashboardPage()));
+        BorderPane.setAlignment(container.getTop(),Pos.TOP_LEFT);
+        BorderPane.setMargin(container.getTop(),new Insets(10));
+        container.setCenter(box);
 
         Label label = new Label("Enter amount to withdraw:");
         label.setFont(Font.font(25));
 
         TextField amountField = new TextField();
         amountField.setPrefSize(130,70);
+        amountField.setMaxWidth(250);
         amountField.setPromptText("Amount");
         amountField.setStyle("-fx-font-size: 20px;");
 
+        ContextMenu suggestions = new ContextMenu();
+        int[] suggestedAmounts = {10, 20, 50, 100, 200};
+        for (int amt : suggestedAmounts) {
+            MenuItem item = new MenuItem(String.valueOf(amt)+"$");
+            item.setStyle("-fx-background-radius: 10;");
+            item.setOnAction(e -> amountField.setText(String.valueOf(amt)));
+            suggestions.getItems().add(item);
+        }
+
+        amountField.setOnMouseEntered(e -> {
+            if (!suggestions.isShowing()) {
+                suggestions.show(amountField, amountField.getScene().getWindow().getX() + amountField.localToScene(0, 0).getX() + amountField.getScene().getX() + amountField.getWidth(),
+                        amountField.getScene().getWindow().getY() + amountField.localToScene(0, 0).getY() + amountField.getScene().getY());
+            }
+        });
+
         Button withdrawButton = new Button("Withdraw");
         withdrawButton.setFont(Font.font(20));
+        withdrawButton.setStyle("-fx-background-color: #3151b6; -fx-text-fill: white; -fx-background-radius: 10;");
+        withdrawButton.setOnMouseEntered(e -> withdrawButton.setStyle("-fx-background-color: #74b9ff; -fx-text-fill: white; -fx-background-radius: 10;"));
+        withdrawButton.setOnMouseExited(e -> withdrawButton.setStyle("-fx-background-color: #3151b6; -fx-text-fill: white; -fx-background-radius: 10;"));
 
         withdrawButton.setOnAction(event -> {
             try {
                 double amount = Double.parseDouble(amountField.getText());
                 if (amount <= 0) {
                     showError("Amount must be greater than 0!");
+                } else if (amount>200){
+                    showError("You can't withdraw more than 200$");
                 } else if (amount > currentAccount.getBalance()) {
                     showError("Insufficient Balance!");
                 } else {
                     currentAccount.withdraw(amount);
                     showInfo("Withdrew " + amount + "$ successfully");
-                    mainRoot.setCenter(createMainMenu()); // بازگشت به منو
                 }
             } catch (NumberFormatException e) {
                 showError("Invalid amount!");
             }
             PauseTransition pause = new PauseTransition(Duration.seconds(2));
             pause.setOnFinished(event1 -> {
-                VBox mainMenuWithKeypad = new VBox(30, createMainMenu());
+                VBox mainMenuWithKeypad = new VBox(30,createDashboardPage());
                 mainMenuWithKeypad.setAlignment(Pos.CENTER);
                 mainRoot.setCenter(mainMenuWithKeypad);
             });
@@ -196,28 +163,36 @@ public class BankProject extends Application {
         });
 
         box.getChildren().addAll(label, amountField, withdrawButton);
-        mainRoot.setCenter(box);
+        mainRoot.setStyle("-fx-background-color: #8caeb6;");
+        mainRoot.setCenter(container);
 
     }
 
     private void balanceEnquiryPage() {
         VBox box = new VBox(20);
+        box.setStyle("-fx-background-color: #8caeb6;");
         box.setAlignment(Pos.CENTER);
-        Label label = new Label("Your Balance: " + currentAccount.getBalance() + "$");
+        Label label = new Label("Card number: "+currentAccount.getCardNumber()+"\n\nYour Balance: " + currentAccount.getBalance() + "$");
         label.setFont(Font.font(25));
         box.getChildren().add(label);
         mainRoot.setCenter(box);
 
-        PauseTransition pause = new PauseTransition(Duration.seconds(2));
+        PauseTransition pause = new PauseTransition(Duration.seconds(3));
         pause.setOnFinished(event -> {
-            VBox mainMenuWithKeypad = new VBox(30, createMainMenu());
+            VBox mainMenuWithKeypad = new VBox(30, createDashboardPage());
             mainMenuWithKeypad.setAlignment(Pos.CENTER);
+            mainRoot.setStyle("-fx-background-color: #8caeb6;");
             mainRoot.setCenter(mainMenuWithKeypad);
         });
         pause.play();
     }
 
     private void deleteAccountPage() {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setHeaderText("Are you sure you want to delete your account ???");
+        Optional<ButtonType> result=alert.showAndWait();
+
+        if (result.isPresent() && result.get()==ButtonType.OK){
         VBox box = new VBox(20);
         box.setAlignment(Pos.CENTER);
         Label label = new Label("Account deleted successfully");
@@ -235,44 +210,78 @@ public class BankProject extends Application {
                 break;
             }
         }
-        mainRoot.setCenter(box);
 
         PauseTransition pause = new PauseTransition(Duration.seconds(2));
         pause.setOnFinished(event -> {
-            VBox mainMenuWithKeypad = new VBox(30, createMainMenu());
-            mainMenuWithKeypad.setAlignment(Pos.CENTER);
-            mainRoot.setCenter(mainMenuWithKeypad);
+            VBox mainMenu = new VBox(30, createLoginPage());
+            mainRoot.setCenter(mainMenu);
         });
         pause.play();
+        } else {
+            VBox box = new VBox(20);
+            box.setAlignment(Pos.CENTER);
+            Label label = new Label("Account deletion canceled.");
+            label.setFont(Font.font(25));
+            box.getChildren().add(label);
+            mainRoot.setCenter(box);
+            mainRoot.setStyle("-fx-background-color: #8caeb6;");
+
+            PauseTransition pause = new PauseTransition(Duration.seconds(2));
+            pause.setOnFinished(event -> {
+                VBox mainMenu = new VBox(30, createDashboardPage());
+                mainMenu.setAlignment(Pos.CENTER);
+                mainRoot.setStyle("-fx-background-color: #8caeb6;");
+                mainRoot.setCenter(mainMenu);
+            });
+            pause.play();
+        }
     }
 
-    private void newAccountPage() {
+    private void newAccountPage(boolean flag) {
         VBox box = new VBox(20);
         box.setAlignment(Pos.CENTER);
+        box.setStyle("-fx-background-color: #8caeb6;");
+
+        BorderPane container=new BorderPane();
+        container.setStyle("-fx-background-color: #8caeb6;");
+        container.setTop(makeBackBtn(createDashboardPage()));
+        BorderPane.setAlignment(container.getTop(),Pos.TOP_LEFT);
+        BorderPane.setMargin(container.getTop(),new Insets(10));
+        container.setCenter(box);
 
         TextField card = new TextField();
-        card.setPrefSize(250,100);
-        card.setFont(Font.font(25));
+        card.setPrefSize(250,80);
+        card.setMaxWidth(350);
+        card.setFont(Font.font(22));
         card.setPromptText("New card number: ");
         TextField pass = new TextField();
-        pass.setPrefSize(250,100);
-        pass.setFont(Font.font(25));
+        pass.setPrefSize(250,80);
+        pass.setMaxWidth(350);
+        pass.setFont(Font.font(22));
         pass.setPromptText("New password: ");
 
         Button createAccount = new Button("CREATE");
         createAccount.setFont(Font.font(20));
+        createAccount.setStyle("-fx-background-color: #3151b6; -fx-text-fill: white; -fx-background-radius: 10;");
+        createAccount.setOnMouseEntered(e -> createAccount.setStyle("-fx-background-color: #74b9ff; -fx-text-fill: white; -fx-background-radius: 10;"));
+        createAccount.setOnMouseExited(e -> createAccount.setStyle("-fx-background-color: #3151b6; -fx-text-fill: white; -fx-background-radius: 10;"));
 
         createAccount.setOnAction(event -> {
             if (card.getText().isEmpty() || pass.getText().isEmpty()) {
                 showError("Fields cannot be empty!");
             } else {
                 addAccount(card.getText(), pass.getText(), 0);
+                currentAccount=accounts[accountCnt=1];
                 showInfo("Account created successfully");
                 PauseTransition pause = new PauseTransition(Duration.seconds(2));
                 pause.setOnFinished(event1 -> {
-                    VBox mainMenuWithKeypad = new VBox(30, createMainMenu());
+                    VBox mainMenuWithKeypad = new VBox(30, createDashboardPage());
                     mainMenuWithKeypad.setAlignment(Pos.CENTER);
+                    mainRoot.setStyle("-fx-background-color: #8caeb6;");
+                    if (flag)
                     mainRoot.setCenter(mainMenuWithKeypad);
+                    else
+                        mainRoot.setCenter(createLoginPage());
                 });
                 pause.play();
             }
@@ -280,7 +289,7 @@ public class BankProject extends Application {
         Label label=new Label("Create new account");
         label.setFont(Font.font(25));
         box.getChildren().addAll(label, card, pass, createAccount);
-        mainRoot.setCenter(box);
+        mainRoot.setCenter(container);
 
     }
 
@@ -308,104 +317,133 @@ public class BankProject extends Application {
         return null;
     }
 
-    private GridPane createKeypad(TextField cardNumber, TextField passNumber) {
+    private VBox createLoginPage() {
+        VBox loginBox = new VBox(20);
+        loginBox.setPrefHeight(800);
+        loginBox.setAlignment(Pos.CENTER);
+        loginBox.setPadding(new Insets(50));
+        loginBox.setStyle("-fx-background-color: #8caeb6;");
 
-        GridPane grid = new GridPane();
-        grid.setAlignment(Pos.CENTER);
-        grid.setPadding(new Insets(10));
-        grid.setVgap(15);
-        grid.setHgap(10);
-        grid.setStyle("-fx-background-color:lightgray;");
+        Label title = new Label("Welcome to SmartBank");
+        title.setFont(Font.font( 36));
+        title.setStyle("-fx-text-fill: #2d3436;");
 
+        FadeTransition fade = new FadeTransition(Duration.seconds(1.5), title);
+        fade.setFromValue(0.8);
+        fade.setToValue(1.2);
+        fade.setCycleCount(Animation.INDEFINITE);
+        fade.setAutoReverse(true);
 
-        String[][] layout = {
-                {"7", "8", "9", "CANCLE"},
-                {"4", "5", "6", "CLEAR"},
-                {"1", "2", "3", ""},
-                {"#", "0", "*", "ENTER"}
-        };
+        TranslateTransition slide = new TranslateTransition(Duration.seconds(1.5), title);
+        slide.setByX(15);
+        slide.setCycleCount(Animation.INDEFINITE);
+        slide.setAutoReverse(true);
 
-        String[][] colors = {
-                {"#b3b3b3", "#b3b3b3", "#b3b3b3", "#cc3333"},
-                {"#b3b3b3", "#b3b3b3", "#b3b3b3", "#ffe666"},
-                {"#b3b3b3", "#b3b3b3", "#b3b3b3", "#b3b3b3",},
-                {"#b3b3b3", "#b3b3b3", "#b3b3b3", "#336633"}
-        };
-        for (int i = 0; i < layout.length; i++) {
-            for (int j = 0; j < layout[i].length; j++) {
-                String text = layout[i][j];
-                Button button = new Button(text);
-                button.setStyle("-fx-background-color : " + colors[i][j] + ";" + "-fx-text-fill:white;");
-                button.setFont(Font.font(27));
-                button.setPrefSize(150, 70);
-                grid.add(button, j, i + 1);
+        ParallelTransition combined = new ParallelTransition(fade, slide);
+        combined.play();
 
+        TextField cardInput = new TextField();
+        cardInput.setPromptText("Card Number");
+        cardInput.setFont(Font.font(18));
+        cardInput.setMaxWidth(300);
+        cardInput.setStyle("-fx-background-radius: 10; -fx-padding: 10;");
 
-                button.setOnAction(event -> {
-                    if (button.getText().equals("CANCLE")) {
-                        cardNumber.clear();
-                        passNumber.clear();
-                    } else if (button.getText().equals("CLEAR")) {
-                        activeField.clear();
-                    } else if (button.getText().equals("ENTER")) {
-                        String card = cardNumber.getText();
-                        String pass = passNumber.getText();
+        TextField passInput = new TextField();
+        passInput.setPromptText("Password");
+        passInput.setFont(Font.font(18));
+        passInput.setMaxWidth(300);
+        passInput.setStyle("-fx-background-radius: 10; -fx-padding: 10;");
 
-                        currentAccount = findAccount(card, pass);
+        Button loginBtn = new Button("Login");
+        loginBtn.setFont(Font.font(20));
+        loginBtn.setStyle("-fx-background-color: #3151b6; -fx-text-fill: white; -fx-background-radius: 10;");
+        loginBtn.setOnMouseEntered(e -> loginBtn.setStyle("-fx-background-color: #74b9ff; -fx-text-fill: white; -fx-background-radius: 10;"));
+        loginBtn.setOnMouseExited(e -> loginBtn.setStyle("-fx-background-color: #3151b6; -fx-text-fill: white; -fx-background-radius: 10;"));
 
-                        if (currentAccount != null) {
-                            mainRoot.setCenter(createMainMenu());
-                            mainRoot.setLeft(buttonLeft);
-                            mainRoot.setRight(buttonRight);
-                            mainRoot.setBottom(makeKeyboardShow());
-                        } else {
-                            showError("Login failed!");
-                        }
-                    } else {
-                        String currentText = activeField.getText();
-                        activeField.setText(currentText + button.getText());
-                    }
-                });
-
+        loginBtn.setOnAction(e -> {
+            currentAccount = findAccount(cardInput.getText(), passInput.getText());
+            if (currentAccount != null) {
+                showInfo("Login successful!");
+                mainRoot.setCenter(createDashboardPage());
+            } else {
+                showError("Login failed!");
             }
-        }
-        return grid;
+        });
+
+        Button createAccountBtn = new Button("CREATE NEW ACCOUNT");
+        createAccountBtn.setFont(Font.font(14));
+        createAccountBtn.setStyle("-fx-background-color: #3151b6; -fx-text-fill: white; -fx-background-radius: 10;");
+        createAccountBtn.setOnMouseEntered(e -> createAccountBtn.setStyle("-fx-background-color: #74b9ff; -fx-text-fill: white; -fx-background-radius: 10;"));
+        createAccountBtn.setOnMouseExited(e -> createAccountBtn.setStyle("-fx-background-color: #3151b6; -fx-text-fill: white; -fx-background-radius: 10;"));
+        createAccountBtn.setOnAction(event -> newAccountPage(false));
+
+        loginBox.getChildren().addAll(title, cardInput, passInput, loginBtn,createAccountBtn);
+        return loginBox;
     }
 
-    private GridPane makeKeyboardShow() {
-        GridPane grid = new GridPane();
-        grid.setAlignment(Pos.CENTER);
-        grid.setPadding(new Insets(10));
-        grid.setVgap(15);
-        grid.setHgap(10);
-        grid.setStyle("-fx-background-color:lightgray;");
+    private VBox createDashboardPage(){
+        VBox dashboard=new VBox(30);
+        dashboard.setAlignment(Pos.CENTER);
+        dashboard.setPadding(new Insets(40));
+        dashboard.setStyle("-fx-background-color: #8caeb6;");
 
+        Label welcome=new Label("Welcome ,"+currentAccount.getCardNumber());
+        welcome.setFont(Font.font(28));
 
-        String[][] layout = {
-                {"7", "8", "9", "CANCLE"},
-                {"4", "5", "6", "CLEAR"},
-                {"1", "2", "3", ""},
-                {"#", "0", "*", "ENTER"}
-        };
+        FadeTransition fade = new FadeTransition(Duration.seconds(1.5), welcome);
+        fade.setFromValue(0.8);
+        fade.setToValue(1.5);
+        fade.setCycleCount(Animation.INDEFINITE);
+        fade.setAutoReverse(true);
 
-        String[][] colors = {
-                {"#b3b3b3", "#b3b3b3", "#b3b3b3", "#cc3333"},
-                {"#b3b3b3", "#b3b3b3", "#b3b3b3", "#ffe666"},
-                {"#b3b3b3", "#b3b3b3", "#b3b3b3", "#b3b3b3",},
-                {"#b3b3b3", "#b3b3b3", "#b3b3b3", "#336633"}
-        };
-        for (int i = 0; i < layout.length; i++) {
-            for (int j = 0; j < layout[i].length; j++) {
-                String text = layout[i][j];
-                Button button = new Button(text);
-                button.setStyle("-fx-background-color : " + colors[i][j] + ";" + "-fx-text-fill:white;");
-                button.setFont(Font.font(27));
-                button.setPrefSize(150, 70);
-                grid.add(button, j, i + 1);
-            }
-        }
-        return grid;
-}
+        TranslateTransition slide = new TranslateTransition(Duration.seconds(1.5), welcome);
+        slide.setByX(20);
+        slide.setCycleCount(Animation.INDEFINITE);
+        slide.setAutoReverse(true);
+
+        ParallelTransition combined = new ParallelTransition(fade, slide);
+        combined.play();
+
+        Button depositBtn=makeDashboardBtn("DEPOSIT AMOUNT ");
+        Button withdrawBtn=makeDashboardBtn("WITHDRAW AMOUNT ");
+        Button balanceEnquiryBtn=makeDashboardBtn("BALANCE ENQUIRY ");
+        Button deleteAccountBtn=makeDashboardBtn("DELETE ACCOUNT ");
+        Button newAccountBtn=makeDashboardBtn("NEW ACCOUNT ");
+        Button exitBtn=makeDashboardBtn("EXIT ");
+
+        depositBtn.setOnAction(event -> depositAmountPage());
+        withdrawBtn.setOnAction(event -> withdrawAmountPage());
+        balanceEnquiryBtn.setOnAction(event -> balanceEnquiryPage());
+        deleteAccountBtn.setOnAction(event -> deleteAccountPage());
+        newAccountBtn.setOnAction(event -> newAccountPage(true));
+        exitBtn.setOnAction(event -> primaryStage.close());
+
+        dashboard.getChildren().addAll(welcome,depositBtn,withdrawBtn,balanceEnquiryBtn,deleteAccountBtn,newAccountBtn,exitBtn);
+
+        return dashboard;
+    }
+
+    private Button makeDashboardBtn(String text){
+        Button button=new Button(text);
+        button.setFont(Font.font(20));
+        button.setPrefSize(250,60);
+        button.setStyle("-fx-background-color: #3151b6; -fx-text-fill: white; -fx-background-radius: 10;");
+        button.setOnMouseEntered(e -> button.setStyle("-fx-background-color: #74b9ff; -fx-text-fill: white; -fx-background-radius: 10;"));
+        button.setOnMouseExited(e -> button.setStyle("-fx-background-color: #3151b6; -fx-text-fill: white; -fx-background-radius: 10;"));
+
+        return button;
+    }
+
+    private Button makeBackBtn(VBox page){
+        Button button=new Button("BACK");
+        button.setFont(Font.font(15));
+        button.setStyle("-fx-background-color: black; -fx-text-fill: white; -fx-background-radius: 8;");
+        button.setOnMouseEntered(e -> button.setStyle("-fx-background-color: #b3b3b3; -fx-text-fill: white; -fx-background-radius: 8;"));
+        button.setOnMouseExited(e -> button.setStyle("-fx-background-color: black; -fx-text-fill: white; -fx-background-radius: 8;"));
+        button.setOnAction(event -> mainRoot.setCenter(page));
+
+        return button;
+    }
 
     @Override
     public void start(Stage stage) throws Exception {
@@ -417,65 +455,12 @@ public class BankProject extends Application {
         addAccount("3333","0000",240);
 
         mainRoot=new BorderPane();
+        mainRoot.setCenter(createLoginPage());
 
-        buttonLeft=new VBox(65);
-        buttonLeft.setPadding(new Insets(30,0,0,30));
-
-        buttonRight=new VBox(65);
-        buttonRight.setPadding(new Insets(30,30,0,0));
-
-        for (int i=0; i<3; i++){
-            leftButtons[i]=createSideButton();
-            rightButtons[i]=createSideButton();
-
-            buttonLeft.getChildren().add(leftButtons[i]);
-            buttonRight.getChildren().add(rightButtons[i]);
-        }
-
-        setButtonActions();
-
-        TextField cardNumber=new TextField();
-        cardNumber.setStyle("-fx-background-color:white; -fx-font-size:30px;");
-        TextField passNumber=new TextField();
-        passNumber.setStyle("-fx-background-color:white; -fx-font-size:30px;");
-
-        Label cardNumLable =new Label("Enter card number :");
-        cardNumLable.setStyle("-fx-text-fill:black; -fx-font-size:30px;");
-        Label passLable =new Label("Enter card password :");
-        passLable.setStyle("-fx-text-fill:black; -fx-font-size:30px;");
-
-        VBox center = new VBox(20, cardNumLable, cardNumber, passLable, passNumber);
-        center.setAlignment(Pos.CENTER);
-
-        BorderPane loginPane = new BorderPane();
-        loginPane.setLeft(buttonLeft);
-        loginPane.setCenter(center);
-        loginPane.setRight(buttonRight);
-        loginPane.setPadding(new Insets(20));
-        loginPane.setStyle("-fx-background-color:lightgray;");
-
-        activeField = cardNumber;
-        cardNumber.setOnMouseClicked(e -> activeField = cardNumber);
-        passNumber.setOnMouseClicked(e -> activeField = passNumber);
-
-        VBox all = new VBox(50, loginPane, createKeypad(cardNumber, passNumber));
-        all.setAlignment(Pos.CENTER);
-
-        mainRoot.setLeft(buttonLeft);
-        mainRoot.setRight(buttonRight);
-        mainRoot.setCenter(all);
-
-        Scene scene=new Scene(mainRoot,900,800);
+        Scene scene=new Scene(mainRoot,500,800);
         stage.setScene(scene);
         stage.setTitle("BANK");
         stage.show();
-    }
-
-    private Button createSideButton() {
-        Button button = new Button();
-        button.setFont(Font.font(32));
-        button.setPrefSize(110, 70);
-        return button;
     }
 
     public static void main(String[] args) {
