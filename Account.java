@@ -33,4 +33,7 @@ public class Account {
         }
         return false;
     }
+    public void changePass(String pass){
+        this.password=pass;
+    }
 }

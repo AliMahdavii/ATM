@@ -101,10 +101,9 @@ public class BankProject extends Application {
         label.setStyle("-fx-text-fill: #eeeeee;");
 
         TextField amountField = new TextField();
-        amountField.setMaxHeight(60);
+        amountField.setPrefSize(130, 70);
         amountField.setMaxWidth(290);
         amountField.setPromptText("Amount ($)");
-        amountField.setStyle("-fx-font-size: 20px;");
         amountField.setStyle("-fx-font-size: 20px; -fx-background-radius: 40;");
 
         ContextMenu suggestions = new ContextMenu();
@@ -338,7 +337,7 @@ public class BankProject extends Application {
             if (acc != null) {
                 Label accLabel = new Label("Card:    " + acc.getCardNumber() + "\nPassword:    " + acc.getPassword() + "\nBalance:    " + acc.getBalance() + " $\n\n");
                 accLabel.setFont(Font.font(16));
-                accLabel.setMaxWidth(440);
+                accLabel.setMaxWidth(1850);
                 accLabel.setStyle("-fx-text-fill: #dfe6e9; -fx-background-color: #2d3436; -fx-background-radius: 8; -fx-padding: 8;");
                 accountListBox.getChildren().add(accLabel);
             }
@@ -406,6 +405,11 @@ public class BankProject extends Application {
                     return;
                 }
 
+                if(amount>200){
+                    showError("You can't transfer more than 200$");
+                    return;
+                }
+
                 currentAccount.withdraw(amount);
                 target.deposit(amount);
                 showInfo("Transferred $" + amount + " to " + targetCard);
@@ -424,6 +428,68 @@ public class BankProject extends Application {
         box.getChildren().addAll(label, targetCardField, amountField, transferBtn, backBtn);
         mainRoot.setCenter(box);
 
+    }
+
+    private void changePassword(){
+        VBox box = new VBox(20);
+        box.setAlignment(Pos.CENTER);
+        box.setStyle("-fx-background-color: #1e1e1e;");
+
+        Label label = new Label("Enter old password :");
+        label.setFont(Font.font(25));
+        label.setStyle("-fx-text-fill: #eeeeee;");
+
+        PasswordField oldPass = new PasswordField();
+        oldPass.setPrefSize(130, 70);
+        oldPass.setMaxWidth(290);
+        oldPass.setPromptText("Old password");
+        oldPass.setStyle("-fx-font-size: 20px; -fx-background-radius: 40;");
+
+        PasswordField newPass = new PasswordField();
+        newPass.setPrefSize(130, 70);
+        newPass.setMaxWidth(290);
+        newPass.setPromptText("New password");
+        newPass.setStyle("-fx-font-size: 20px; -fx-background-radius: 40;");
+
+        Button change = new Button("CHANGE");
+        change.setFont(Font.font(20));
+        change.setMaxHeight(60);
+        change.setMaxWidth(290);
+        change.setStyle("-fx-background-color: #3d3dff; -fx-text-fill: #eeeeee; -fx-background-radius: 40;");
+        change.setOnMouseEntered(e -> change.setStyle("-fx-background-color: #444444; -fx-text-fill: #ffffff; -fx-background-radius: 40;"));
+        change.setOnMouseExited(e -> change.setStyle("-fx-background-color: #3d3dff; -fx-text-fill: #eeeeee; -fx-background-radius: 40;"));
+
+        change.setOnAction(event -> {
+            if (currentAccount == null) {
+                showError("No account is currently logged in!");
+                return;
+            }
+
+            if (oldPass.getText().isEmpty()) {
+                showError("Enter old password!");
+            } else if (newPass.getText().isEmpty()) {
+                showError("Enter new password!");
+            } else if (!currentAccount.getPassword().equals(oldPass.getText())) {
+                showError("Old password is incorrect!");
+            } else {
+                currentAccount.changePass(newPass.getText());
+                showInfo("Password changed successfully!");
+
+                PauseTransition pause = new PauseTransition(Duration.seconds(2));
+                pause.setOnFinished(event1 -> {
+                    VBox mainMenu = new VBox(30, createDashboardPage());
+                    mainMenu.setAlignment(Pos.CENTER);
+                    mainRoot.setStyle("-fx-background-color: #1e1e1e;");
+                    mainRoot.setCenter(mainMenu);
+                });
+                pause.play();
+            }
+        });
+        Button backBtn=makeBackBtn(createDashboardPage());
+
+        box.getChildren().addAll(label,oldPass,newPass,change,backBtn);
+        mainRoot.setStyle("-fx-background-color: #1e1e1e;");
+        mainRoot.setCenter(box);
     }
 
     private VBox createLoginPage() {
@@ -457,7 +523,7 @@ public class BankProject extends Application {
         cardInput.setMaxWidth(300);
         cardInput.setStyle("-fx-background-radius: 30; -fx-padding: 10;");
 
-        TextField passInput = new TextField();
+        PasswordField passInput = new PasswordField();
         passInput.setPromptText("Password");
         passInput.setFont(Font.font(18));
         passInput.setMaxWidth(300);
@@ -523,6 +589,7 @@ public class BankProject extends Application {
         Button newAccountBtn=makeDashboardBtn("NEW ACCOUNT");
         Button showAllAccountsBtn=makeDashboardBtn("SHOW ALL ACCOUNTS");
         Button cardToCardBtn=makeDashboardBtn("CARD TO CARD");
+        Button changePassBtn =makeDashboardBtn("CHANGE PASSWORD");
         Button exitBtn=makeDashboardBtn("EXIT ");
 
         depositBtn.setOnAction(event -> depositAmountPage());
@@ -532,9 +599,10 @@ public class BankProject extends Application {
         newAccountBtn.setOnAction(event -> newAccountPage(true));
         showAllAccountsBtn.setOnAction(event -> showAllAccountsPage());
         cardToCardBtn.setOnAction(event -> cardToCardPage());
+        changePassBtn.setOnAction(event -> changePassword());
         exitBtn.setOnAction(event -> primaryStage.close());
 
-        dashboard.getChildren().addAll(welcome,depositBtn,withdrawBtn,balanceEnquiryBtn,deleteAccountBtn,newAccountBtn,showAllAccountsBtn,cardToCardBtn,exitBtn);
+        dashboard.getChildren().addAll(welcome,depositBtn,withdrawBtn,balanceEnquiryBtn,deleteAccountBtn,newAccountBtn,showAllAccountsBtn,cardToCardBtn,changePassBtn,exitBtn);
 
         return dashboard;
     }
