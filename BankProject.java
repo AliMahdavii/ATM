@@ -12,14 +12,19 @@ import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
 public class BankProject extends Application {
 
-    private Account[] accounts = new Account[10];
-    private int accountCnt = 0;
+    private Account[] accounts =loadAccounts();
+    private int accountCnt = countAccount(accounts);
     private Account currentAccount = null;
     private Stage primaryStage;
     private BorderPane mainRoot;
@@ -32,6 +37,31 @@ public class BankProject extends Application {
             new ExchangeRate(40_000,"2020/01/13"),
             new ExchangeRate(1_000,"2004/01/13")
     );
+
+    private void saveAccounts(Account[] accounts) {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("accounts.ser"))) {
+            oos.writeObject(accounts);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private Account[] loadAccounts() {
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream("accounts.ser"))) {
+            return (Account[]) ois.readObject();
+        } catch (Exception e) {
+            return new Account[100];
+        }
+    }
+
+    private int countAccount(Account[] accounts){
+        int cnt=0;
+        for (Account account:accounts){
+            if (account!=null)
+                cnt++;
+        }
+        return cnt;
+    }
 
     private void depositAmountPage() {
         VBox box = new VBox(20);
@@ -212,7 +242,7 @@ public class BankProject extends Application {
         mainRoot.setCenter(box);
 
         for (int i = 0; i < accountCnt; i++) {
-            if (accounts[i] == currentAccount) {
+            if (accounts[i]!=null && accounts[i].getCardNumber().equals(currentAccount.getCardNumber())) {
                 for (int j = i; j < accountCnt - 1; j++) {
                     accounts[j] = accounts[j + 1];
                 }
@@ -221,6 +251,8 @@ public class BankProject extends Application {
                 break;
             }
         }
+
+        saveAccounts(accounts);
 
         PauseTransition pause = new PauseTransition(Duration.seconds(2));
         pause.setOnFinished(event -> {
@@ -286,6 +318,7 @@ public class BankProject extends Application {
             } else {
                 addAccount(card.getText(), pass.getText(), 0);
                 currentAccount=accounts[accountCnt-1];
+                saveAccounts(accounts);
                 showInfo("ATM.Account created successfully");
                 PauseTransition pause = new PauseTransition(Duration.seconds(2));
                 pause.setOnFinished(event1 -> {
@@ -746,11 +779,9 @@ public class BankProject extends Application {
     @Override
     public void start(Stage stage) throws Exception {
 
-        primaryStage=stage;
+        accounts=loadAccounts();
 
-        addAccount("1234","1111",120);
-        addAccount("5678","2222",20);
-        addAccount("3333","0000",240);
+        primaryStage=stage;
 
         mainRoot=new BorderPane();
         mainRoot.setCenter(createLoginPage());
@@ -761,7 +792,5 @@ public class BankProject extends Application {
         stage.show();
     }
 
-    public static void main(String[] args) {
-        launch(args);
-    }
+    public static void main(String[] args) {launch(args);}
 }
