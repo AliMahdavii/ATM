@@ -1,3 +1,5 @@
+package ATM;
+
 import javafx.animation.*;
 import javafx.application.Application;
 import javafx.geometry.Insets;
@@ -9,8 +11,10 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-import java.util.Optional;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 
 public class BankProject extends Application {
 
@@ -19,6 +23,15 @@ public class BankProject extends Application {
     private Account currentAccount = null;
     private Stage primaryStage;
     private BorderPane mainRoot;
+
+    private List<ExchangeRate> exchangeRates= Arrays.asList(
+            new ExchangeRate(950_0000,"2025/01/13"),
+            new ExchangeRate(400_000,"2023/01/13"),
+            new ExchangeRate(100_000,"2022/01/13"),
+            new ExchangeRate(65_000,"2021/01/13"),
+            new ExchangeRate(40_000,"2020/01/13"),
+            new ExchangeRate(1_000,"2004/01/13")
+    );
 
     private void depositAmountPage() {
         VBox box = new VBox(20);
@@ -34,6 +47,7 @@ public class BankProject extends Application {
         amountField.setMaxWidth(290);
         amountField.setPromptText("Amount ($)");
         amountField.setStyle("-fx-font-size: 20px; -fx-background-radius: 40;");
+        amountField.setAlignment(Pos.CENTER);
 
         ContextMenu suggestions = new ContextMenu();
         int[] suggestedAmounts = {10, 20, 50, 100, 200};
@@ -90,7 +104,6 @@ public class BankProject extends Application {
         mainRoot.setCenter(box);
     }
 
-
     private void withdrawAmountPage() {
         VBox box = new VBox(20);
         box.setAlignment(Pos.CENTER);
@@ -105,6 +118,7 @@ public class BankProject extends Application {
         amountField.setMaxWidth(290);
         amountField.setPromptText("Amount ($)");
         amountField.setStyle("-fx-font-size: 20px; -fx-background-radius: 40;");
+        amountField.setAlignment(Pos.CENTER);
 
         ContextMenu suggestions = new ContextMenu();
         int[] suggestedAmounts = {10, 20, 50, 100, 200};
@@ -191,7 +205,7 @@ public class BankProject extends Application {
         VBox box = new VBox(20);
         box.setStyle("-fx-background-color: #1e1e1e;");
         box.setAlignment(Pos.CENTER);
-        Label label = new Label("Account " + currentAccount.getCardNumber() + " deleted successfully .");
+        Label label = new Label("ATM.Account " + currentAccount.getCardNumber() + " deleted successfully .");
         label.setFont(Font.font(25));
         label.setStyle("-fx-text-fill: #eeeeee;");
         box.getChildren().add(label);
@@ -218,7 +232,7 @@ public class BankProject extends Application {
         } else {
             VBox box = new VBox(20);
             box.setAlignment(Pos.CENTER);
-            Label label = new Label("Account deletion canceled.");
+            Label label = new Label("ATM.Account deletion canceled.");
             label.setFont(Font.font(25));
             label.setStyle("-fx-text-fill: #eeeeee;");
             box.getChildren().add(label);
@@ -250,12 +264,14 @@ public class BankProject extends Application {
         card.setFont(Font.font(22));
         card.setStyle("-fx-background-radius: 40;");
         card.setPromptText("New card number ");
+        card.setAlignment(Pos.CENTER);
 
         TextField pass = new TextField();
         pass.setMaxWidth(350);
         pass.setFont(Font.font(22));
         pass.setStyle("-fx-background-radius: 40;");
         pass.setPromptText("New password ");
+        pass.setAlignment(Pos.CENTER);
 
         Button createAccountBtn = new Button("CREATE");
         createAccountBtn.setFont(Font.font(20));
@@ -270,7 +286,7 @@ public class BankProject extends Application {
             } else {
                 addAccount(card.getText(), pass.getText(), 0);
                 currentAccount=accounts[accountCnt-1];
-                showInfo("Account created successfully");
+                showInfo("ATM.Account created successfully");
                 PauseTransition pause = new PauseTransition(Duration.seconds(2));
                 pause.setOnFinished(event1 -> {
                     VBox mainMenu = new VBox(30, createDashboardPage());
@@ -365,12 +381,14 @@ public class BankProject extends Application {
         targetCardField.setFont(Font.font(22));
         targetCardField.setStyle("-fx-background-radius: 40; -fx-padding: 10;");
         targetCardField.setPromptText("Target card field ");
+        targetCardField.setAlignment(Pos.CENTER);
 
         TextField amountField = new TextField();
         amountField.setPromptText("Amount ($)");
         amountField.setMaxWidth(300);
         amountField.setFont(Font.font(22));
         amountField.setStyle("-fx-background-radius: 40; -fx-padding: 10;");
+        amountField.setAlignment(Pos.CENTER);
 
         Button transferBtn=new Button("TRANSFER");
         transferBtn.setFont(Font.font(20));
@@ -444,12 +462,14 @@ public class BankProject extends Application {
         oldPass.setMaxWidth(290);
         oldPass.setPromptText("Old password");
         oldPass.setStyle("-fx-font-size: 20px; -fx-background-radius: 40;");
+        oldPass.setAlignment(Pos.CENTER);
 
         PasswordField newPass = new PasswordField();
         newPass.setPrefSize(130, 70);
         newPass.setMaxWidth(290);
         newPass.setPromptText("New password");
         newPass.setStyle("-fx-font-size: 20px; -fx-background-radius: 40;");
+        newPass.setAlignment(Pos.CENTER);
 
         Button change = new Button("CHANGE");
         change.setFont(Font.font(20));
@@ -492,6 +512,96 @@ public class BankProject extends Application {
         mainRoot.setCenter(box);
     }
 
+    private ExchangeRate findRateByDate(String date){
+        for (ExchangeRate rate:exchangeRates){
+            if (rate.getDate().equals(date))
+                return rate;
+        }
+        return null;
+    }
+
+    private void currencyExchange(){
+        VBox box = new VBox(20);
+        box.setAlignment(Pos.CENTER);
+        box.setStyle("-fx-background-color: #1e1e1e;");
+
+        Label title = new Label("Currency converter ");
+        title.setFont(Font.font(25));
+        title.setStyle("-fx-text-fill: #eeeeee;");
+
+        ComboBox<String> dateCombo=new ComboBox<>();
+        for (ExchangeRate rate:exchangeRates){
+            dateCombo.getItems().add(rate.getDate());
+        }
+        dateCombo.setPromptText("Select a date:");
+        dateCombo.setMaxWidth(290);
+        dateCombo.setPrefSize(130, 60);
+        dateCombo.setStyle("-fx-font-size: 20px; -fx-background-radius: 40;");
+
+        ComboBox<String> modeCombo =new ComboBox<>();
+        modeCombo.getItems().addAll("Rial to Dollar","Dollar to Rial");
+        modeCombo.setPromptText("Select mode");
+        modeCombo.setMaxWidth(290);
+        modeCombo.setPrefSize(130, 60);
+        modeCombo.setStyle("-fx-font-size: 20px; -fx-background-radius: 40;");
+
+        TextField inputField=new TextField();
+        inputField.setPromptText("Enter amount");
+        inputField.setMaxWidth(290);
+        inputField.setPrefSize(130, 60);
+        inputField.setStyle("-fx-font-size: 24px; -fx-background-radius: 40;");
+        inputField.setAlignment(Pos.CENTER);
+
+        Label resultLabel=new Label("0");
+        resultLabel.setFont(Font.font(24));
+        resultLabel.setStyle("-fx-text-fill: #00ff00;");
+
+        Button convertBtn=new Button("CONVERT");
+        convertBtn.setFont(Font.font(20));
+        convertBtn.setMaxHeight(60);
+        convertBtn.setMaxWidth(290);
+        convertBtn.setStyle("-fx-background-color: #3d3dff; -fx-text-fill: #eeeeee; -fx-background-radius: 40;");
+        convertBtn.setOnMouseEntered(e -> convertBtn.setStyle("-fx-background-color: #444444; -fx-text-fill: #ffffff; -fx-background-radius: 40;"));
+        convertBtn.setOnMouseExited(e -> convertBtn.setStyle("-fx-background-color: #3d3dff; -fx-text-fill: #eeeeee; -fx-background-radius: 40;"));
+
+        convertBtn.setOnAction(event ->{
+            String selectedDate=dateCombo.getValue();
+            String mode=modeCombo.getValue();
+            String amountText =inputField.getText();
+
+            if (selectedDate==null || mode==null || amountText==null){
+                showError("Please fill all fields!");
+                return;
+            }
+
+            ExchangeRate selectedRate=findRateByDate(selectedDate);
+
+            if (selectedRate==null){
+                showError("Rate not found for selected date!");
+                return;
+            }
+
+            try {
+                double amount=Double.parseDouble(amountText);
+                double result;
+
+                if (mode.equals("Dollar to Rial")){
+                    result=amount*selectedRate.getRate();
+                    resultLabel.setText(amount + " $ = " + result + " Rial");
+                } else {
+                    result=amount/selectedRate.getRate();
+                    resultLabel.setText(amount + " Rial = " + result + " $");
+                }
+            } catch (NumberFormatException ex){
+                showError("Invalid amount");
+            }
+        });
+        Button backBtn=makeBackBtn(createDashboardPage());
+
+        box.getChildren().addAll(title, dateCombo, modeCombo, inputField, resultLabel, convertBtn, backBtn);
+        mainRoot.setCenter(box);
+    }
+
     private VBox createLoginPage() {
         VBox loginBox = new VBox(20);
         loginBox.setPrefHeight(800);
@@ -522,12 +632,14 @@ public class BankProject extends Application {
         cardInput.setFont(Font.font(18));
         cardInput.setMaxWidth(300);
         cardInput.setStyle("-fx-background-radius: 30; -fx-padding: 10;");
+        cardInput.setAlignment(Pos.CENTER);
 
         PasswordField passInput = new PasswordField();
         passInput.setPromptText("Password");
         passInput.setFont(Font.font(18));
         passInput.setMaxWidth(300);
         passInput.setStyle("-fx-background-radius: 30; -fx-padding: 10;");
+        passInput.setAlignment(Pos.CENTER);
 
         Button loginBtn = new Button("Login");
         loginBtn.setFont(Font.font(20));
@@ -559,7 +671,7 @@ public class BankProject extends Application {
     }
 
     private VBox createDashboardPage(){
-        VBox dashboard=new VBox(30);
+        VBox dashboard=new VBox(20);
         dashboard.setAlignment(Pos.CENTER);
         dashboard.setPadding(new Insets(40));
         dashboard.setStyle("-fx-background-color: #1e1e1e;");
@@ -589,6 +701,7 @@ public class BankProject extends Application {
         Button newAccountBtn=makeDashboardBtn("NEW ACCOUNT");
         Button showAllAccountsBtn=makeDashboardBtn("SHOW ALL ACCOUNTS");
         Button cardToCardBtn=makeDashboardBtn("CARD TO CARD");
+        Button currencyExchangeBtn =makeDashboardBtn("CURRENCY EXCHANGE");
         Button changePassBtn =makeDashboardBtn("CHANGE PASSWORD");
         Button exitBtn=makeDashboardBtn("EXIT ");
 
@@ -599,10 +712,11 @@ public class BankProject extends Application {
         newAccountBtn.setOnAction(event -> newAccountPage(true));
         showAllAccountsBtn.setOnAction(event -> showAllAccountsPage());
         cardToCardBtn.setOnAction(event -> cardToCardPage());
+        currencyExchangeBtn.setOnAction(event -> currencyExchange());
         changePassBtn.setOnAction(event -> changePassword());
         exitBtn.setOnAction(event -> primaryStage.close());
 
-        dashboard.getChildren().addAll(welcome,depositBtn,withdrawBtn,balanceEnquiryBtn,deleteAccountBtn,newAccountBtn,showAllAccountsBtn,cardToCardBtn,changePassBtn,exitBtn);
+        dashboard.getChildren().addAll(welcome,depositBtn,withdrawBtn,balanceEnquiryBtn,deleteAccountBtn,newAccountBtn,showAllAccountsBtn,cardToCardBtn, currencyExchangeBtn,changePassBtn,exitBtn);
 
         return dashboard;
     }
