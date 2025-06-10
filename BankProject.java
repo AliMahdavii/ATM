@@ -6,7 +6,9 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
@@ -16,10 +18,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 public class BankProject extends Application {
 
@@ -103,6 +102,35 @@ public class BankProject extends Application {
         depositButton.setOnMouseEntered(e -> depositButton.setStyle("-fx-background-color: #444444; -fx-text-fill: #ffffff; -fx-background-radius: 40;"));
         depositButton.setOnMouseExited(e -> depositButton.setStyle("-fx-background-color: #3d3dff; -fx-text-fill: #eeeeee; -fx-background-radius: 40;"));
 
+        depositButton.setDefaultButton(true);
+
+        depositButton.setOnKeyPressed(event -> {
+            if (event.getCode()==KeyCode.ENTER){
+            try {
+                double amount = Double.parseDouble(amountField.getText());
+                if (amount <= 0) {
+                    showError("Amount must be greater than 0!");
+                } else if (amount > 200) {
+                    showError("You can't deposit more than 200$");
+                } else {
+                    currentAccount.deposit(amount);
+                    showInfo("Deposited " + amount + "$ successfully");
+
+                    PauseTransition pause = new PauseTransition(Duration.seconds(2));
+                    pause.setOnFinished(event1 -> {
+                        VBox mainMenu = new VBox(30, createDashboardPage());
+                        mainMenu.setAlignment(Pos.CENTER);
+                        mainRoot.setStyle("-fx-background-color: #1e1e1e;");
+                        mainRoot.setCenter(mainMenu);
+                    });
+                    pause.play();
+                }
+            } catch (NumberFormatException e) {
+                showError("Invalid amount!");
+            }
+          }
+        });
+
         depositButton.setOnAction(event -> {
             try {
                 double amount = Double.parseDouble(amountField.getText());
@@ -172,6 +200,35 @@ public class BankProject extends Application {
         withdrawButton.setStyle("-fx-background-color: #3d3dff; -fx-text-fill: #eeeeee; -fx-background-radius: 40;");
         withdrawButton.setOnMouseEntered(e -> withdrawButton.setStyle("-fx-background-color: #444444; -fx-text-fill: #ffffff; -fx-background-radius: 40;"));
         withdrawButton.setOnMouseExited(e -> withdrawButton.setStyle("-fx-background-color: #3d3dff; -fx-text-fill: #eeeeee; -fx-background-radius: 40;"));
+
+        withdrawButton.setDefaultButton(true);
+
+        withdrawButton.setOnKeyPressed(event -> {
+            if (event.getCode()==KeyCode.ENTER){
+            try {
+                double amount = Double.parseDouble(amountField.getText());
+                if (amount <= 0) {
+                    showError("Amount must be greater than 0!");
+                } else if (amount>200){
+                    showError("You can't withdraw more than 200$");
+                } else if (amount > currentAccount.getBalance()) {
+                    showError("Insufficient Balance!");
+                } else {
+                    currentAccount.withdraw(amount);
+                    showInfo("Withdrew " + amount + "$ successfully");
+                }
+            } catch (NumberFormatException e) {
+                showError("Invalid amount!");
+            }
+            PauseTransition pause = new PauseTransition(Duration.seconds(2));
+            pause.setOnFinished(event1 -> {
+                VBox mainMenu = new VBox(30,createDashboardPage());
+                mainMenu.setAlignment(Pos.CENTER);
+                mainRoot.setCenter(mainMenu);
+            });
+            pause.play();
+            }
+        });
 
         withdrawButton.setOnAction(event -> {
             try {
@@ -282,6 +339,26 @@ public class BankProject extends Application {
         }
     }
 
+    private String generateUniqueCardNumber(){
+        Random random=new Random();
+        String card;
+        boolean isUnique;
+
+        do {
+            int num=10000000+random.nextInt(90000000);
+            card=String.valueOf(num);
+            isUnique=true;
+
+            for (int i=0; i<accountCnt; i++){
+                if (accounts[i]!=null && accounts[i].getCardNumber().equals(card)){
+                    isUnique=false;
+                    break;
+                }
+            }
+        } while (!isUnique);
+        return card;
+    }
+
     private void newAccountPage(boolean flag) {
         VBox box = new VBox(20);
         box.setAlignment(Pos.CENTER);
@@ -291,19 +368,21 @@ public class BankProject extends Application {
         label.setStyle("-fx-text-fill: #eeeeee;");
         label.setFont(Font.font(25));
 
-        TextField card = new TextField();
-        card.setMaxWidth(350);
-        card.setFont(Font.font(22));
-        card.setStyle("-fx-background-radius: 40;");
-        card.setPromptText("New card number ");
-        card.setAlignment(Pos.CENTER);
+        TextField nameField = new TextField();
+        nameField.setMaxWidth(350);
+        nameField.setFont(Font.font(22));
+        nameField.setStyle("-fx-background-radius: 40;");
+        nameField.setPromptText("Your name ");
+        nameField.setAlignment(Pos.CENTER);
 
-        TextField pass = new TextField();
+        PasswordField pass = new PasswordField();
         pass.setMaxWidth(350);
         pass.setFont(Font.font(22));
         pass.setStyle("-fx-background-radius: 40;");
         pass.setPromptText("New password ");
         pass.setAlignment(Pos.CENTER);
+
+        setupNavigation(nameField,pass,null);
 
         Button createAccountBtn = new Button("CREATE");
         createAccountBtn.setFont(Font.font(20));
@@ -312,15 +391,40 @@ public class BankProject extends Application {
         createAccountBtn.setOnMouseEntered(e -> createAccountBtn.setStyle("-fx-background-color: #444444; -fx-text-fill: #ffffff; -fx-background-radius: 40;"));
         createAccountBtn.setOnMouseExited(e -> createAccountBtn.setStyle("-fx-background-color: #3d3dff; -fx-text-fill: #eeeeee; -fx-background-radius: 40;"));
 
-        createAccountBtn.setOnAction(event -> {
-            if (card.getText().isEmpty() || pass.getText().isEmpty()) {
+        createAccountBtn.setDefaultButton(true);
+
+        createAccountBtn.setOnKeyPressed(event -> {
+            if (event.getCode()==KeyCode.ENTER){
+            if (nameField.getText().isEmpty() || pass.getText().isEmpty()) {
                 showError("Fields cannot be empty!");
             } else {
-                addAccount(card.getText(), pass.getText(), 0);
+                addAccount(generateUniqueCardNumber(), pass.getText(), nameField.getText(), 0);
                 currentAccount=accounts[accountCnt-1];
                 saveAccounts(accounts);
-                showInfo("ATM.Account created successfully");
+                showInfo("ATM.Account created successfully"+"\nAccount number -> " + formatCardNumber(currentAccount.getCardNumber()));
                 PauseTransition pause = new PauseTransition(Duration.seconds(2));
+                pause.setOnFinished(event1 -> {
+                    VBox mainMenu = new VBox(30, createDashboardPage());
+                    mainMenu.setAlignment(Pos.CENTER);
+                    mainRoot.setStyle("-fx-background-color: #1e1e1e;");
+                    if (flag)
+                        mainRoot.setCenter(mainMenu);
+                    else
+                        mainRoot.setCenter(createLoginPage());
+                });
+                pause.play();
+            }
+          }
+        });
+
+        createAccountBtn.setOnAction(event -> {
+            if (nameField.getText().isEmpty() || pass.getText().isEmpty()) {
+                showError("Fields cannot be empty!");
+            } else {
+                addAccount(generateUniqueCardNumber(), pass.getText(), nameField.getText() ,0);
+                currentAccount=accounts[accountCnt-1];
+                saveAccounts(accounts);
+                showInfo("ATM.Account created successfully"+"\nAccount number -> " + formatCardNumber(currentAccount.getCardNumber()));                PauseTransition pause = new PauseTransition(Duration.seconds(2));
                 pause.setOnFinished(event1 -> {
                     VBox mainMenu = new VBox(30, createDashboardPage());
                     mainMenu.setAlignment(Pos.CENTER);
@@ -336,7 +440,7 @@ public class BankProject extends Application {
 
         Button backBtn=makeBackBtn(flag?createDashboardPage():createLoginPage());
 
-        box.getChildren().addAll(label, card, pass, createAccountBtn,backBtn);
+        box.getChildren().addAll(label, nameField, pass, createAccountBtn,backBtn);
         mainRoot.setCenter(box);
 
     }
@@ -351,9 +455,13 @@ public class BankProject extends Application {
         alert.show();
     }
 
-    private void addAccount(String cardNumber, String password, double balance) {
+    private String formatCardNumber(String cardNumber) {
+        return cardNumber.replaceAll("(.{4})(?=.)", "$1-");
+    }
+
+    private void addAccount(String cardNumber, String password, String name, double balance) {
         if (accountCnt < accounts.length) {
-            accounts[accountCnt++] = new Account(cardNumber, password, balance);
+            accounts[accountCnt++] = new Account(cardNumber, password, name, balance);
         }
     }
 
@@ -384,7 +492,7 @@ public class BankProject extends Application {
 
         for (Account acc : accounts) {
             if (acc != null) {
-                Label accLabel = new Label("Card:    " + acc.getCardNumber() + "\nPassword:    " + acc.getPassword() + "\nBalance:    " + acc.getBalance() + " $\n\n");
+                Label accLabel = new Label("Card:    " + formatCardNumber(acc.getCardNumber()) + "\nPassword:    " + acc.getPassword() + "\nBalance:    "  + acc.getBalance() + " $" + "\nName:    " + acc.getName() + "\n\n");
                 accLabel.setFont(Font.font(16));
                 accLabel.setMaxWidth(1850);
                 accLabel.setStyle("-fx-text-fill: #dfe6e9; -fx-background-color: #2d3436; -fx-background-radius: 8; -fx-padding: 8;");
@@ -423,12 +531,62 @@ public class BankProject extends Application {
         amountField.setStyle("-fx-background-radius: 40; -fx-padding: 10;");
         amountField.setAlignment(Pos.CENTER);
 
+        setupNavigation(targetCardField,amountField,null);
+
         Button transferBtn=new Button("TRANSFER");
         transferBtn.setFont(Font.font(20));
         transferBtn.setMaxWidth(300);
         transferBtn.setStyle("-fx-background-color: #3d3dff; -fx-text-fill: #eeeeee; -fx-background-radius: 40;");
         transferBtn.setOnMouseEntered(e -> transferBtn.setStyle("-fx-background-color: #444444; -fx-text-fill: #ffffff; -fx-background-radius: 40;"));
         transferBtn.setOnMouseExited(e -> transferBtn.setStyle("-fx-background-color: #3d3dff; -fx-text-fill: #eeeeee; -fx-background-radius: 40;"));
+
+        transferBtn.setDefaultButton(true);
+
+        transferBtn.setOnKeyPressed(event ->{
+            if (event.getCode()==KeyCode.ENTER){
+            String targetCard =targetCardField.getText();
+            String amountText = amountField.getText();
+
+            if (targetCard.isEmpty() || amountText.isEmpty()){
+                showError("Fields cannot be empty!");
+                return;
+            }
+            try {
+                double amount = Double.parseDouble(amountText);
+                if (amount <= 0) {
+                    showError("Amount must be greater than 0!");
+                    return;
+                }
+                Account target = findAccount(targetCard, null);
+
+                if (target == null) {
+                    showError("Target account not found!");
+                    return;
+                }
+
+                if (currentAccount.getBalance() < amount) {
+                    showError("Insufficient balance!");
+                    return;
+                }
+
+                if(amount>200){
+                    showError("You can't transfer more than 200$");
+                    return;
+                }
+
+                currentAccount.withdraw(amount);
+                target.deposit(amount);
+                showInfo("Transferred $" + amount + " to " + targetCard);
+
+                PauseTransition pause = new PauseTransition(Duration.seconds(2));
+                pause.setOnFinished(event1 -> mainRoot.setCenter(createDashboardPage()));
+                pause.play();
+
+            } catch (NumberFormatException ex) {
+                showError("Invalid amount!");
+            }
+          }
+        });
 
         transferBtn.setOnAction(event ->{
             String targetCard =targetCardField.getText();
@@ -504,6 +662,8 @@ public class BankProject extends Application {
         newPass.setStyle("-fx-font-size: 20px; -fx-background-radius: 40;");
         newPass.setAlignment(Pos.CENTER);
 
+        setupNavigation(oldPass,newPass,null);
+
         Button change = new Button("CHANGE");
         change.setFont(Font.font(20));
         change.setMaxHeight(60);
@@ -511,6 +671,37 @@ public class BankProject extends Application {
         change.setStyle("-fx-background-color: #3d3dff; -fx-text-fill: #eeeeee; -fx-background-radius: 40;");
         change.setOnMouseEntered(e -> change.setStyle("-fx-background-color: #444444; -fx-text-fill: #ffffff; -fx-background-radius: 40;"));
         change.setOnMouseExited(e -> change.setStyle("-fx-background-color: #3d3dff; -fx-text-fill: #eeeeee; -fx-background-radius: 40;"));
+
+        change.setDefaultButton(true);
+
+        change.setOnKeyPressed(event -> {
+            if(event.getCode()==KeyCode.ENTER){
+            if (currentAccount == null) {
+                showError("No account is currently logged in!");
+                return;
+            }
+
+            if (oldPass.getText().isEmpty()) {
+                showError("Enter old password!");
+            } else if (newPass.getText().isEmpty()) {
+                showError("Enter new password!");
+            } else if (!currentAccount.getPassword().equals(oldPass.getText())) {
+                showError("Old password is incorrect!");
+            } else {
+                currentAccount.changePass(newPass.getText());
+                showInfo("Password changed successfully!");
+
+                PauseTransition pause = new PauseTransition(Duration.seconds(2));
+                pause.setOnFinished(event1 -> {
+                    VBox mainMenu = new VBox(30, createDashboardPage());
+                    mainMenu.setAlignment(Pos.CENTER);
+                    mainRoot.setStyle("-fx-background-color: #1e1e1e;");
+                    mainRoot.setCenter(mainMenu);
+                });
+                pause.play();
+            }
+          }
+        });
 
         change.setOnAction(event -> {
             if (currentAccount == null) {
@@ -597,6 +788,43 @@ public class BankProject extends Application {
         convertBtn.setOnMouseEntered(e -> convertBtn.setStyle("-fx-background-color: #444444; -fx-text-fill: #ffffff; -fx-background-radius: 40;"));
         convertBtn.setOnMouseExited(e -> convertBtn.setStyle("-fx-background-color: #3d3dff; -fx-text-fill: #eeeeee; -fx-background-radius: 40;"));
 
+        convertBtn.setDefaultButton(true);
+
+        convertBtn.setOnKeyPressed(event ->{
+            if (event.getCode()==KeyCode.ENTER){
+            String selectedDate=dateCombo.getValue();
+            String mode=modeCombo.getValue();
+            String amountText =inputField.getText();
+
+            if (selectedDate==null || mode==null || amountText==null){
+                showError("Please fill all fields!");
+                return;
+            }
+
+            ExchangeRate selectedRate=findRateByDate(selectedDate);
+
+            if (selectedRate==null){
+                showError("Rate not found for selected date!");
+                return;
+            }
+
+            try {
+                double amount=Double.parseDouble(amountText);
+                double result;
+
+                if (mode.equals("Dollar to Rial")){
+                    result=amount*selectedRate.getRate();
+                    resultLabel.setText(amount + " $ = " + result + " Rial");
+                } else {
+                    result=amount/selectedRate.getRate();
+                    resultLabel.setText(amount + " Rial = " + result + " $");
+                }
+            } catch (NumberFormatException ex){
+                showError("Invalid amount");
+            }
+          }
+        });
+
         convertBtn.setOnAction(event ->{
             String selectedDate=dateCombo.getValue();
             String mode=modeCombo.getValue();
@@ -636,6 +864,7 @@ public class BankProject extends Application {
     }
 
     private VBox createLoginPage() {
+
         VBox loginBox = new VBox(20);
         loginBox.setPrefHeight(800);
         loginBox.setAlignment(Pos.CENTER);
@@ -674,6 +903,8 @@ public class BankProject extends Application {
         passInput.setStyle("-fx-background-radius: 30; -fx-padding: 10;");
         passInput.setAlignment(Pos.CENTER);
 
+        setupNavigation(cardInput,passInput,null);
+
         Button loginBtn = new Button("Login");
         loginBtn.setFont(Font.font(20));
         loginBtn.setMaxWidth(300);
@@ -681,6 +912,19 @@ public class BankProject extends Application {
         loginBtn.setOnMouseEntered(e -> loginBtn.setStyle("-fx-background-color: #444444; -fx-text-fill: #ffffff; -fx-background-radius: 40;"));
         loginBtn.setOnMouseExited(e -> loginBtn.setStyle("-fx-background-color: #3d3dff; -fx-text-fill: #eeeeee; -fx-background-radius: 40;"));
 
+        loginBtn.setDefaultButton(true);
+
+        loginBtn.setOnKeyPressed(e->{
+            if (e.getCode()==KeyCode.ENTER){
+                currentAccount = findAccount(cardInput.getText(), passInput.getText());
+                if (currentAccount != null) {
+                    showInfo("Login successful!");
+                    mainRoot.setCenter(createDashboardPage());
+                } else {
+                    showError("Login failed!");
+                }
+            }
+        });
         loginBtn.setOnAction(e -> {
             currentAccount = findAccount(cardInput.getText(), passInput.getText());
             if (currentAccount != null) {
@@ -700,16 +944,29 @@ public class BankProject extends Application {
         createAccountBtn.setOnAction(event -> newAccountPage(false));
 
         loginBox.getChildren().addAll(title, cardInput, passInput, loginBtn,createAccountBtn);
+
         return loginBox;
     }
 
     private VBox createDashboardPage(){
-        VBox dashboard=new VBox(20);
-        dashboard.setAlignment(Pos.CENTER);
-        dashboard.setPadding(new Insets(40));
-        dashboard.setStyle("-fx-background-color: #1e1e1e;");
+        VBox vBox=new VBox();
+        vBox.setAlignment(Pos.CENTER);
+        vBox.setStyle("-fx-background-color: #1e1e1e;");
 
-        Label welcome=new Label("Welcome : "+currentAccount.getCardNumber());
+        HBox dashboard=new HBox();
+        dashboard.setAlignment(Pos.CENTER);
+
+        VBox dashboardLeft =new VBox(20);
+        dashboardLeft.setAlignment(Pos.CENTER);
+        dashboardLeft.setPadding(new Insets(40));
+        dashboardLeft.setStyle("-fx-background-color: #1e1e1e;");
+
+        VBox dashboardRight =new VBox(20);
+        dashboardRight.setAlignment(Pos.CENTER);
+        dashboardRight.setPadding(new Insets(40));
+        dashboardRight.setStyle("-fx-background-color: #1e1e1e;");
+
+        Label welcome=new Label("Welcome : "+currentAccount.getName());
         welcome.setFont(Font.font(28));
         welcome.setStyle("-fx-text-fill: #eeeeee;");
 
@@ -749,9 +1006,14 @@ public class BankProject extends Application {
         changePassBtn.setOnAction(event -> changePassword());
         exitBtn.setOnAction(event -> primaryStage.close());
 
-        dashboard.getChildren().addAll(welcome,depositBtn,withdrawBtn,balanceEnquiryBtn,deleteAccountBtn,newAccountBtn,showAllAccountsBtn,cardToCardBtn, currencyExchangeBtn,changePassBtn,exitBtn);
+        dashboardLeft.getChildren().addAll(depositBtn,withdrawBtn,balanceEnquiryBtn,deleteAccountBtn,newAccountBtn);
+        dashboardRight.getChildren().addAll(showAllAccountsBtn,cardToCardBtn, currencyExchangeBtn,changePassBtn,exitBtn);
 
-        return dashboard;
+        dashboard.getChildren().addAll(dashboardLeft, dashboardRight);
+
+        vBox.getChildren().addAll(welcome,dashboard);
+
+        return vBox;
     }
 
     private Button makeDashboardBtn(String text){
@@ -776,6 +1038,17 @@ public class BankProject extends Application {
         return button;
     }
 
+    private void setupNavigation(TextInputControl current,TextInputControl next,TextInputControl prev){
+        current.setOnKeyPressed(e -> {
+            if (e.getCode() == KeyCode.DOWN && next!=null){
+                next.requestFocus();
+                setupNavigation(next,prev,current);
+            } else if (e.getCode() == KeyCode.UP && prev!=null){
+                prev.requestFocus();
+            }
+        });
+    }
+
     @Override
     public void start(Stage stage) throws Exception {
 
@@ -786,7 +1059,7 @@ public class BankProject extends Application {
         mainRoot=new BorderPane();
         mainRoot.setCenter(createLoginPage());
 
-        Scene scene=new Scene(mainRoot,500,800);
+        Scene scene=new Scene(mainRoot,525,800);
         stage.setScene(scene);
         stage.setTitle("BANK");
         stage.show();
